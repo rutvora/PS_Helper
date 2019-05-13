@@ -92,7 +92,6 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 	csvData[7] = "Have Accommodation?"
 	err = csvWriter.Write(csvData)
 	checkErrors(err)
-
 	for _, object := range stationList {
 		problemBankCounterpart := findInMapArray(problemBank, "StationId", object["StationId"])
 		if problemBankCounterpart != nil {
@@ -104,7 +103,6 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 			csvData[5] = fmt.Sprintf("%v", problemBankCounterpart["stipend"])
 			csvData[6] = fmt.Sprintf("%v", problemBankCounterpart["stipendforpg"])
 			csvData[7] = "No"
-
 		} else {
 
 			temp := strings.Split(fmt.Sprintf("%v", object["Companyname"]), "-")
@@ -120,9 +118,13 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 			csvData[6] = "Unavailable"
 			csvData[7] = "No"
 		}
+		fmt.Println(csvData)
 		err = csvWriter.Write(csvData)
 		checkErrors(err)
 	}
+	csvWriter.Flush()
+	err = csvFile.Close()
+	checkErrors(err)
 }
 
 func postRequest(url string, data string, cookies string) []map[string]interface{} {
