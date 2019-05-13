@@ -106,8 +106,14 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 		} else {
 
 			temp := strings.Split(fmt.Sprintf("%v", object["Companyname"]), "-")
-			companyDomain := strings.TrimSpace(temp[0])
-			companyName := strings.TrimSpace(temp[1])
+			var companyDomain, companyName string
+			if len(temp) > 1 {
+				companyDomain = strings.TrimSpace(temp[0])
+				companyName = strings.TrimSpace(temp[1])
+			} else {
+				companyDomain = "Unavailable"
+				companyName = temp[0]
+			}
 
 			csvData[0] = fmt.Sprintf("%v", object["StationId"])
 			csvData[1] = companyName
