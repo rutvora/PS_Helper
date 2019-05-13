@@ -1,22 +1,15 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
-	"net/url"
+	"os"
 	"strings"
 )
-
-type preferenceList struct {
-	Sno         int
-	City        string
-	Companyname string
-	StationId   int
-	CompanyId   int
-}
 
 func checkErrors(err error) {
 	if err != nil {
@@ -24,19 +17,19 @@ func checkErrors(err error) {
 	}
 }
 
-func generatePostRequestData() url.Values {
-	loginRequest := url.Values{}
-	loginRequest.Set("__EVENTTARGET", "")
-	loginRequest.Set("__EVENTARGUMENT", "")
-	loginRequest.Set("__VIEWSTATE", "/wEPDwULLTE1NjMxNjMxNzFkZCo3T3kAnddTDFryr26qaofiTp5p")
-	loginRequest.Set("__VIEWSTATEGENERATOR", "C2EE9ABB")
-	loginRequest.Set("__EVENTVALIDATION", "/wEdAAYNcEy/uvEwBm4by+oKLWkjSvD5Cbpu3w0ab2H9f5rbFEPTPkdPWl+8YN2NtDCtxifN+DvxnwFeFeJ9MIBWR693w+qCzNvQHKCQwl8+YzOKE62xJNKuHibH70Ul6qoa4F8sDaR1uxEyo1xbP9xcXI4vvNcYtQ==")
-	loginRequest.Set("TxtEmail", "id")
-	loginRequest.Set("txtPass", "pass")
-	loginRequest.Set("Button1", "Login")
-	loginRequest.Set("txtEmailId", "")
-	return loginRequest
-}
+//func generatePostRequestData() url.Values {
+//	loginRequest := url.Values{}
+//	loginRequest.Set("__EVENTTARGET", "")
+//	loginRequest.Set("__EVENTARGUMENT", "")
+//	loginRequest.Set("__VIEWSTATE", "/wEPDwULLTE1NjMxNjMxNzFkZCo3T3kAnddTDFryr26qaofiTp5p")
+//	loginRequest.Set("__VIEWSTATEGENERATOR", "C2EE9ABB")
+//	loginRequest.Set("__EVENTVALIDATION", "/wEdAAYNcEy/uvEwBm4by+oKLWkjSvD5Cbpu3w0ab2H9f5rbFEPTPkdPWl+8YN2NtDCtxifN+DvxnwFeFeJ9MIBWR693w+qCzNvQHKCQwl8+YzOKE62xJNKuHibH70Ul6qoa4F8sDaR1uxEyo1xbP9xcXI4vvNcYtQ==")
+//	loginRequest.Set("TxtEmail", "id")
+//	loginRequest.Set("txtPass", "pass")
+//	loginRequest.Set("Button1", "Login")
+//	loginRequest.Set("txtEmailId", "")
+//	return loginRequest
+//}
 
 func setHeaders(req *http.Request) {
 	req.Header.Set("Accept", "application/json, text/javascript, */*; q=0.01")
@@ -46,7 +39,7 @@ func setHeaders(req *http.Request) {
 	req.Header.Set("Connection", "keep-alive")
 	req.Header.Set("Content-Length", "20")
 	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
-	req.Header.Set("Cookie", "ASP.NET_SessionId=sdsu3el5cdfybni3kdqimjbm")
+	req.Header.Set("Cookie", "_ga=GA1.3.236302189.1557160384; _fbp=fb.2.1557160390387.730603858; ASP.NET_SessionId=sdsu3el5cdfybni3kdqimjbm")
 	req.Header.Set("DNT", "1")
 	req.Header.Set("Host", "psd.bits-pilani.ac.in")
 	req.Header.Set("Origin", "http://psd.bits-pilani.ac.in")
@@ -70,19 +63,66 @@ func decodeJSON(response *io.ReadCloser) []map[string]interface{} {
 	return dataArray
 }
 
-func writeCSV(dataArray []map[string]interface{}) {
-	for _, object := range dataArray {
-		for key, value := range object {
-			fmt.Println(key + ": " + fmt.Sprintf("%v", value))
+func findInMapArray(mapArray []map[string]interface{}, key string, value interface{}) map[string]interface{} {
+	for _, object := range mapArray {
+		if val, ok := object[key]; ok && val == value {
+			return object
 		}
-		fmt.Println()
+	}
+	return nil
+}
+
+func writeCSV(stationList, problemBank []map[string]interface{}) {
+	//Open file for csv
+	csvFile, err := os.Create("StationDetails.csv")
+	checkErrors(err)
+	csvWriter := csv.NewWriter(csvFile)
+
+	csvData := make([]string, 7)
+	//Head
+	csvData[0] = "Station ID"
+	csvData[1] = "Company Name"
+	csvData[2] = "Location"
+	csvData[3] = "Industry Domain"
+	csvData[4] = "Preferred Branches"
+	csvData[5] = "Stipend (UG)"
+	csvData[6] = "Stipend (PG)"
+	err = csvWriter.Write(csvData)
+	checkErrors(err)
+
+	for _, object := range stationList {
+		problemBankCounterpart := findInMapArray(problemBank, "StationId", object["StationId"])
+		if problemBankCounterpart != nil {
+			csvData[0] = fmt.Sprintf("%v", object["StationId"])
+			csvData[1] = fmt.Sprintf("%v", problemBankCounterpart["CompanyName"])
+			csvData[2] = fmt.Sprintf("%v", problemBankCounterpart["City"])
+			csvData[3] = fmt.Sprintf("%v", problemBankCounterpart["IndustryDomain"])
+			csvData[4] = fmt.Sprintf("%v", problemBankCounterpart["Tags"])
+			csvData[5] = fmt.Sprintf("%v", problemBankCounterpart["stipend"])
+			csvData[6] = fmt.Sprintf("%v", problemBankCounterpart["stipendforpg"])
+
+		} else {
+
+			temp := strings.Split(fmt.Sprintf("%v", object["Companyname"]), "-")
+			companyDomain := strings.TrimSpace(temp[0])
+			companyName := strings.TrimSpace(temp[1])
+
+			csvData[0] = fmt.Sprintf("%v", object["StationId"])
+			csvData[1] = companyName
+			csvData[2] = fmt.Sprintf("%v", object["City"])
+			csvData[3] = companyDomain
+			csvData[4] = "Unavailable"
+			csvData[5] = "Unavailable"
+			csvData[6] = "Unavailable"
+		}
+		err = csvWriter.Write(csvData)
+		checkErrors(err)
 	}
 }
 
-func main() {
-	//loginRequest := generatePostRequestData()
-	//req, err := http.NewRequest("POST", "http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx/getPBPOPUP", strings.NewReader("{StationId: \"3514\" }"))
-	req, err := http.NewRequest("POST", "http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/getinfoStation", strings.NewReader("{CompanyId: \"0\" }"))
+func getData(url string, data string) []map[string]interface{} {
+	req, err := http.NewRequest("POST", url, strings.NewReader(data))
+	checkErrors(err)
 	setHeaders(req)
 
 	client := &http.Client{}
@@ -93,12 +133,18 @@ func main() {
 	if resp.StatusCode != 200 {
 		log.Fatalln("HTTP Response code: " + string(resp.StatusCode))
 	}
-	dataArray := decodeJSON(&resp.Body)
-	writeCSV(dataArray)
+	return decodeJSON(&resp.Body)
+}
 
-	//bytearr, err := ioutil.ReadAll(resp.Body)
-	//fmt.Println(string(bytearr))
-	//responseBytes, err := ioutil.ReadAll(resp.Body)
-	//checkErrors(err)
-	//fmt.Println(string(responseBytes))
+func updateList() {
+	csvFile = os.Open("StationDetails")
+}
+
+func main() {
+	//Create CSV
+	stationList := getData("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/getinfoStation", "{CompanyId: \"0\" }")
+	problemBank := getData("http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx/getPBdetail", "{batchid: \"undefined\" }")
+	writeCSV(stationList, problemBank)
+
+	//Update pref list on website
 }
