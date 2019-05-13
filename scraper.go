@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -32,13 +33,13 @@ func checkErrors(err error) {
 //	return loginRequest
 //}
 
-func setHeaders(req *http.Request) {
+func setHeaders(req *http.Request, length int64) {
 	req.Header.Set("Accept", "application/json, text/javascript, */*; q=0.01")
 	req.Header.Set("Accept-Encoding", "gzip, deflate")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9,gu;q=0.8,hi;q=0.7")
 	//req.Header.Set("Cache-Control", "max-age=0")
 	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("Content-Length", "20")
+	req.Header.Set("Content-Length", strconv.FormatInt(length, 10))
 	req.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	req.Header.Set("Cookie", "_ga=GA1.3.236302189.1557160384; _fbp=fb.2.1557160390387.730603858; ASP.NET_SessionId=sdsu3el5cdfybni3kdqimjbm")
 	req.Header.Set("DNT", "1")
@@ -124,10 +125,13 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 	}
 }
 
-func getData(url string, data string) []map[string]interface{} {
+func postRequest(url string, data string) []map[string]interface{} {
 	req, err := http.NewRequest("POST", url, strings.NewReader(data))
 	checkErrors(err)
-	setHeaders(req)
+	//dataContent, err := ioutil.ReadAll(data)
+	checkErrors(err)
+	setHeaders(req, int64(len(data)))
+	fmt.Println(len(data))
 
 	client := &http.Client{}
 	checkErrors(err)
@@ -135,7 +139,9 @@ func getData(url string, data string) []map[string]interface{} {
 	checkErrors(err)
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		log.Fatalln("HTTP Response code: " + string(resp.StatusCode))
+		log.Fatalln("HTTP Response code: " + strconv.FormatInt(int64(resp.StatusCode), 10))
+	} else {
+		fmt.Println(url + " " + strconv.FormatInt(int64(resp.StatusCode), 10))
 	}
 	return decodeJSON(&resp.Body)
 }
@@ -144,57 +150,95 @@ func getUpdateJSON() []byte {
 	csvFile, err := os.Open("StationDetails.csv")
 	checkErrors(err)
 	csvReader := csv.NewReader(csvFile)
+	record, err := csvReader.Read()
 
-	var finalPostData = make(map[string]interface{}, 3)
-	finalPostData["jsonvalue"] = ""
-	finalPostData["contistation"] = "0"
-
-	var preferenceListArr []map[string]string
-
-	record, err := csvReader.Read() //First Row has titles
-
-	//Make JSONArray for sending
+	//Shitty method as the PSD website dev is a 10th grade kid who doesn't know that JSON libraries exist (that or he is
+	//incapable of understanding how JSON works, maybe both)
 	var i int64 = 1
+	var jsondata = "["
 	for {
-		var StationEntry = make(map[string]string, 4)
 		record, err = csvReader.Read()
 		if err != io.EOF {
 			checkErrors(err)
 		} else {
 			break
 		}
-		StationEntry["isActive"] = "1"
-		StationEntry["PreferenceNo"] = strconv.FormatInt(i, 10)
+		jsondata += "{"
+		jsondata += "'isActive':'1',"
+		jsondata += "'PreferenceNo':'" + strconv.FormatInt(i, 10) + "','StationId':'" + record[0] + "',"
 		i += 1
-		StationEntry["StationId"] = record[0]
 		var accommodation string
 		if string(record[7][0]) == "Y" || string(record[7][0]) == "y" {
 			accommodation = "true"
 		} else {
 			accommodation = "false"
 		}
-		StationEntry["Accomodation"] = accommodation
+		jsondata += "'Accommodation':'" + accommodation + "',"
 
-		preferenceListArr = append(preferenceListArr, StationEntry)
-
+		jsondata += "},"
 	}
+	jsondata = jsondata[:len(jsondata)-1]
+	jsondata += "]"
+	fmt.Println(jsondata)
+	data := "{jsondata: \"" + url.QueryEscape(jsondata) + "\", jsonvalue: \"\" , contistation: \"0\"}"
 
-	updateJSON, err := json.Marshal(preferenceListArr)
-	encoder := json.NewEncoder(os.Stderr)
-	encoder.SetEscapeHTML(true)
-	encoder.Encode()
-	checkErrors(err)
-	return updateJSON
+	return []byte(data)
+
+	// Good method which doesn't work as the guy doesn't use JSON but a custom shitty version of it
+	// for some godforsaken reason -_-
+	//
+	//var finalPostData = make(map[string]interface{}, 3)
+	//finalPostData["jsonvalue"] = ""
+	//finalPostData["contistation"] = "0"
+	//
+	//var preferenceListArr []map[string]string
+	//
+	//record, err := csvReader.Read() //First Row has titles
+	//
+	////Make JSONArray for sending
+	//var i int64 = 1
+	//for {
+	//	var StationEntry = make(map[string]string, 4)
+	//	record, err = csvReader.Read()
+	//	if err != io.EOF {
+	//		checkErrors(err)
+	//	} else {
+	//		break
+	//	}
+	//	StationEntry["isActive"] = "1"
+	//	StationEntry["PreferenceNo"] = strconv.FormatInt(i, 10)
+	//	i += 1
+	//	StationEntry["StationId"] = record[0]
+	//	var accommodation string
+	//	if string(record[7][0]) == "Y" || string(record[7][0]) == "y" {
+	//		accommodation = "true"
+	//	} else {
+	//		accommodation = "false"
+	//	}
+	//	StationEntry["Accomodation"] = accommodation
+	//
+	//	preferenceListArr = append(preferenceListArr, StationEntry)
+	//
+	//}
+	//
+	//updateList, err := json.Marshal(preferenceListArr)
+	//checkErrors(err)
+	//finalPostData["jsondata"] = url.PathEscape(strings.ReplaceAll(string(updateList), "\"", "'"))
+	//fmt.Println(finalPostData)
+	//updateJSON, err := json.Marshal(finalPostData)
+	//return updateJSON
 	//fmt.Println(preferenceListArr)
 }
 
 func main() {
 	//Create CSV
-	//stationList := getData("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/getinfoStation", "{CompanyId: \"0\" }")
-	//problemBank := getData("http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx/getPBdetail", "{batchid: \"undefined\" }")
+	//stationList := postRequest("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/getinfoStation", strings.NewReader("{CompanyId: \"0\" }"))
+	//problemBank := postRequest("http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx/getPBdetail", strings.NewReader("{batchid: \"undefined\" }"))
 	//writeCSV(stationList, problemBank)
 
-	updateList()
-
 	//Update pref list on website
+	updateJSON := getUpdateJSON()
+	//fmt.Println(string(updateJSON))
+	postRequest("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/saveStudentStationPref", string(updateJSON))
+
 }
