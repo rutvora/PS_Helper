@@ -240,8 +240,9 @@ func main() {
 		updateJSON := getUpdateJSON()
 		//fmt.Println(string(updateJSON))
 		postRequest("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/saveStudentStationPref", string(updateJSON), os.Args[2])
-	} else {
-		fmt.Println("Wrong argument: " + os.Args[1])
+	}
+	if os.Args[1] != "-u" && os.Args[1] != "-g" {
+		fmt.Println("Wrong Argument: " + os.Args[1])
 	}
 
 }
