@@ -15,7 +15,7 @@ _Note:_ paste whatever you copied from chrome where I've written cookie
 _Windows Users: _ Use ./scraper.exe instead of ./scraper  
 
 Create csv file  
-`./scraper -g "cookie"`  
+`./scraper -g "cookie"` (with quotes)  
 Update List (from the same csv file)  
-`./scraper -u "cookie`
+`./scraper -u "cookie"` (with quotes)
  
