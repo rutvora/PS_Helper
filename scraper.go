@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -78,7 +79,7 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 	checkErrors(err)
 	csvWriter := csv.NewWriter(csvFile)
 
-	csvData := make([]string, 7)
+	csvData := make([]string, 8)
 	//Head
 	csvData[0] = "Station ID"
 	csvData[1] = "Company Name"
@@ -87,6 +88,7 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 	csvData[4] = "Preferred Branches"
 	csvData[5] = "Stipend (UG)"
 	csvData[6] = "Stipend (PG)"
+	csvData[7] = "Have Accommodation?"
 	err = csvWriter.Write(csvData)
 	checkErrors(err)
 
@@ -100,6 +102,7 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 			csvData[4] = fmt.Sprintf("%v", problemBankCounterpart["Tags"])
 			csvData[5] = fmt.Sprintf("%v", problemBankCounterpart["stipend"])
 			csvData[6] = fmt.Sprintf("%v", problemBankCounterpart["stipendforpg"])
+			csvData[7] = "No"
 
 		} else {
 
@@ -114,6 +117,7 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 			csvData[4] = "Unavailable"
 			csvData[5] = "Unavailable"
 			csvData[6] = "Unavailable"
+			csvData[7] = "No"
 		}
 		err = csvWriter.Write(csvData)
 		checkErrors(err)
@@ -136,15 +140,61 @@ func getData(url string, data string) []map[string]interface{} {
 	return decodeJSON(&resp.Body)
 }
 
-func updateList() {
-	csvFile = os.Open("StationDetails")
+func getUpdateJSON() []byte {
+	csvFile, err := os.Open("StationDetails.csv")
+	checkErrors(err)
+	csvReader := csv.NewReader(csvFile)
+
+	var finalPostData = make(map[string]interface{}, 3)
+	finalPostData["jsonvalue"] = ""
+	finalPostData["contistation"] = "0"
+
+	var preferenceListArr []map[string]string
+
+	record, err := csvReader.Read() //First Row has titles
+
+	//Make JSONArray for sending
+	var i int64 = 1
+	for {
+		var StationEntry = make(map[string]string, 4)
+		record, err = csvReader.Read()
+		if err != io.EOF {
+			checkErrors(err)
+		} else {
+			break
+		}
+		StationEntry["isActive"] = "1"
+		StationEntry["PreferenceNo"] = strconv.FormatInt(i, 10)
+		i += 1
+		StationEntry["StationId"] = record[0]
+		var accommodation string
+		if string(record[7][0]) == "Y" || string(record[7][0]) == "y" {
+			accommodation = "true"
+		} else {
+			accommodation = "false"
+		}
+		StationEntry["Accomodation"] = accommodation
+
+		preferenceListArr = append(preferenceListArr, StationEntry)
+
+	}
+
+	updateJSON, err := json.Marshal(preferenceListArr)
+	encoder := json.NewEncoder(os.Stderr)
+	encoder.SetEscapeHTML(true)
+	encoder.Encode()
+	checkErrors(err)
+	return updateJSON
+	//fmt.Println(preferenceListArr)
 }
 
 func main() {
 	//Create CSV
-	stationList := getData("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/getinfoStation", "{CompanyId: \"0\" }")
-	problemBank := getData("http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx/getPBdetail", "{batchid: \"undefined\" }")
-	writeCSV(stationList, problemBank)
+	//stationList := getData("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/getinfoStation", "{CompanyId: \"0\" }")
+	//problemBank := getData("http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx/getPBdetail", "{batchid: \"undefined\" }")
+	//writeCSV(stationList, problemBank)
+
+	updateList()
 
 	//Update pref list on website
 }
