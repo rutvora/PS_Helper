@@ -74,13 +74,21 @@ func findInMapArray(mapArray []map[string]interface{}, key string, value interfa
 	return nil
 }
 
+func mapToString(mapToConvert map[string]interface{}) string {
+	var result string
+	for key, value := range mapToConvert {
+		result += fmt.Sprintln(key + ": " + fmt.Sprintf("%v", value))
+	}
+	return result
+}
+
 func writeCSV(stationList, problemBank []map[string]interface{}) {
 	//Open file for csv
 	csvFile, err := os.Create("StationDetails.csv")
 	checkErrors(err)
 	csvWriter := csv.NewWriter(csvFile)
 
-	csvData := make([]string, 8)
+	csvData := make([]string, 10)
 	//Head
 	csvData[0] = "Station ID"
 	csvData[1] = "Company Name"
@@ -89,23 +97,48 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 	csvData[4] = "Preferred Branches"
 	csvData[5] = "Stipend (UG)"
 	csvData[6] = "Stipend (PG)"
-	csvData[7] = "Have Accommodation?"
+	csvData[7] = "(Raw) Facilities"
+	csvData[8] = "Project IDs (check Sheet 2)"
+	csvData[9] = "Have Accommodation?"
 	err = csvWriter.Write(csvData)
 	checkErrors(err)
-	for _, object := range stationList {
-		problemBankCounterpart := findInMapArray(problemBank, "StationId", object["StationId"])
+	for _, station := range stationList {
+		problemBankCounterpart := findInMapArray(problemBank, "StationId", station["StationId"])
+		projectAndFacilitiesCounterpart := getStationDetails(fmt.Sprintf("%v", problemBankCounterpart["StationId"]), fmt.Sprintf("%v", problemBankCounterpart["CompanyId"]))
 		if problemBankCounterpart != nil {
-			csvData[0] = fmt.Sprintf("%v", object["StationId"])
+			csvData[0] = fmt.Sprintf("%v", station["StationId"])
 			csvData[1] = fmt.Sprintf("%v", problemBankCounterpart["CompanyName"])
 			csvData[2] = fmt.Sprintf("%v", problemBankCounterpart["City"])
 			csvData[3] = fmt.Sprintf("%v", problemBankCounterpart["IndustryDomain"])
 			csvData[4] = fmt.Sprintf("%v", problemBankCounterpart["Tags"])
 			csvData[5] = fmt.Sprintf("%v", problemBankCounterpart["stipend"])
 			csvData[6] = fmt.Sprintf("%v", problemBankCounterpart["stipendforpg"])
-			csvData[7] = "No"
+
+			facilities := projectAndFacilitiesCounterpart["Facilities"]
+			facilitiesMap := facilities.([]map[string]interface{})
+			if len(facilitiesMap) > 0 {
+				csvData[7] = mapToString(facilitiesMap[0])
+			} else {
+				csvData[7] = ""
+			}
+
+			projects := projectAndFacilitiesCounterpart["Projects"]
+			projectsMaps := projects.([]map[string]interface{})
+			if len(projectsMaps) > 0 {
+				for i, projectMap := range projectsMaps {
+					csvData[8] += fmt.Sprintln("Project " + strconv.FormatInt(int64(i), 10))
+					csvData[8] += fmt.Sprintln("Title: " + fmt.Sprintf("%v", projectMap["projectTitle"]))
+					csvData[8] += fmt.Sprintln("Description" + fmt.Sprintf("%v", projectMap["PBDescription"]))
+					csvData[8] += fmt.Sprintln("Students Required" + fmt.Sprintf("%v", projectMap["TotalReqdStudents1"]))
+					csvData[8] += fmt.Sprintln("Min CGPA" + fmt.Sprintf("%v", projectMap["GeneralMinCGPA"]))
+					csvData[8] += fmt.Sprintln("Max CGPA" + fmt.Sprintf("%v", projectMap["GeneralMaxCGPA"]))
+					csvData[8] += "\n"
+				}
+			}
+			csvData[9] = "No"
 		} else {
 
-			temp := strings.Split(fmt.Sprintf("%v", object["Companyname"]), "-")
+			temp := strings.Split(fmt.Sprintf("%v", station["Companyname"]), "-")
 			var companyDomain, companyName string
 			if len(temp) > 1 {
 				companyDomain = strings.TrimSpace(temp[0])
@@ -115,9 +148,9 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 				companyName = temp[0]
 			}
 
-			csvData[0] = fmt.Sprintf("%v", object["StationId"])
+			csvData[0] = fmt.Sprintf("%v", station["StationId"])
 			csvData[1] = companyName
-			csvData[2] = fmt.Sprintf("%v", object["City"])
+			csvData[2] = fmt.Sprintf("%v", station["City"])
 			csvData[3] = companyDomain
 			csvData[4] = "Unavailable"
 			csvData[5] = "Unavailable"
@@ -244,21 +277,26 @@ func getUpdateJSON() []byte {
 	//fmt.Println(preferenceListArr)
 }
 
+func getStationDetails(stationId, companyId string) map[string]interface{} {
+
+	projectTemp := make(map[string]interface{}, 2)
+	referrer := "http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx?CompanyId=" + companyId + "&StationId=" + stationId + "&BatchIdFor=9&PSTypeFor=2"
+	getRequest(referrer, os.Args[2]) //set state variable on the shitty server, else it will return the initial or the last company you visited
+	projectDetails := postRequest("http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx/ViewPB", "{batchid: \"undefined\" }", os.Args[2], referrer)
+	facilitiesDetails := postRequest("http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx/StationFacilitiesInfo", "{StationId: \"0\"}", os.Args[2], referrer)
+	projectTemp["Projects"] = projectDetails
+	projectTemp["Facilities"] = facilitiesDetails
+
+	return projectTemp
+}
+
 func main() {
 	if os.Args[1] == "-g" {
 		//Create CSV
-		//stationList := postRequest("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/getinfoStation", "{CompanyId: \"0\" }", os.Args[2], "http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx")
+		stationList := postRequest("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/getinfoStation", "{CompanyId: \"0\" }", os.Args[2], "http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx")
 		problemBank := postRequest("http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx/getPBdetail", "{batchid: \"undefined\" }", os.Args[2], "http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx")
-		//Fetch project details
-		projectDetails := make([][]map[string]interface{}, 0)
-		for _, station := range problemBank {
-			referrer := "http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx?CompanyId=" + fmt.Sprintf("%v", station["CompanyId"]) + "&StationId=" + fmt.Sprintf("%v", station["StationId"]) + "&BatchIdFor=9&PSTypeFor=2"
 
-			getRequest(referrer, os.Args[2]) //set state variable on the shitty server
-			projectData := postRequest("http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx/ViewPB", "{batchid: \"undefined\" }", os.Args[2], referrer)
-			projectDetails = append(projectDetails, projectData)
-		}
-		//writeCSV(stationList, problemBank)
+		writeCSV(stationList, problemBank)
 	}
 	if os.Args[1] == "-u" {
 		//Update pref list on website
