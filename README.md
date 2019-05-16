@@ -12,7 +12,8 @@
 
 **_Commands:_**  
 _Note:_ paste whatever you copied from chrome where I've written cookie  
-_Windows Users: _ Use ./scraper.exe instead of ./scraper  
+_Windows Users: _ Use scraper.exe instead of ./scraper  
+_Mac Users: _ Use ./scraper_mac instead of ./scraper  
 
 Create csv file  
 `./scraper -g "cookie"` (with quotes)  
