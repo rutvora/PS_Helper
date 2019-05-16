@@ -33,7 +33,7 @@ func checkErrors(err error) {
 //	return loginRequest
 //}
 
-func setHeaders(req *http.Request, length int64, cookies string) {
+func setHeaders(req *http.Request, length int64, cookies string, referrer string) {
 	req.Header.Set("Accept", "application/json, text/javascript, */*; q=0.01")
 	req.Header.Set("Accept-Encoding", "gzip, deflate")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9,gu;q=0.8,hi;q=0.7")
@@ -45,8 +45,8 @@ func setHeaders(req *http.Request, length int64, cookies string) {
 	req.Header.Set("DNT", "1")
 	req.Header.Set("Host", "psd.bits-pilani.ac.in")
 	req.Header.Set("Origin", "http://psd.bits-pilani.ac.in")
-	req.Header.Set("Referer", "ttp://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx")
-	req.Header.Set("Upgrade-Insecure-Requests", "1")
+	req.Header.Set("Referer", referrer)
+	//req.Header.Set("Upgrade-Insecure-Requests", "1")
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Mobile Safari/537.36)")
 	req.Header.Set("X-Requested-With", "XMLHttpRequest")
 
@@ -124,7 +124,6 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 			csvData[6] = "Unavailable"
 			csvData[7] = "No"
 		}
-		fmt.Println(csvData)
 		err = csvWriter.Write(csvData)
 		checkErrors(err)
 	}
@@ -133,20 +132,29 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 	checkErrors(err)
 }
 
-func postRequest(url string, data string, cookies string) []map[string]interface{} {
+func getRequest(url string, cookies string) *http.Response {
+	req, err := http.NewRequest("GET", url, nil)
+	checkErrors(err)
+
+	setHeaders(req, 0, cookies, "")
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	return resp
+}
+
+func postRequest(url string, data string, cookies string, referrer string) []map[string]interface{} {
 	req, err := http.NewRequest("POST", url, strings.NewReader(data))
 	checkErrors(err)
 	//dataContent, err := ioutil.ReadAll(data)
 	checkErrors(err)
-	setHeaders(req, int64(len(data)), cookies)
-
+	setHeaders(req, int64(len(data)), cookies, referrer)
 	client := &http.Client{}
 	checkErrors(err)
 	resp, err := client.Do(req)
 	checkErrors(err)
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		log.Fatalln("HTTP Response code: " + strconv.FormatInt(int64(resp.StatusCode), 10))
+		log.Fatalln(url + " " + strconv.FormatInt(int64(resp.StatusCode), 10))
 	} else {
 		fmt.Println(url + " " + strconv.FormatInt(int64(resp.StatusCode), 10))
 	}
@@ -239,15 +247,24 @@ func getUpdateJSON() []byte {
 func main() {
 	if os.Args[1] == "-g" {
 		//Create CSV
-		stationList := postRequest("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/getinfoStation", "{CompanyId: \"0\" }", os.Args[2])
-		problemBank := postRequest("http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx/getPBdetail", "{batchid: \"undefined\" }", os.Args[2])
-		writeCSV(stationList, problemBank)
+		//stationList := postRequest("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/getinfoStation", "{CompanyId: \"0\" }", os.Args[2], "http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx")
+		problemBank := postRequest("http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx/getPBdetail", "{batchid: \"undefined\" }", os.Args[2], "http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx")
+		//Fetch project details
+		projectDetails := make([][]map[string]interface{}, 0)
+		for _, station := range problemBank {
+			referrer := "http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx?CompanyId=" + fmt.Sprintf("%v", station["CompanyId"]) + "&StationId=" + fmt.Sprintf("%v", station["StationId"]) + "&BatchIdFor=9&PSTypeFor=2"
+
+			getRequest(referrer, os.Args[2]) //set state variable on the shitty server
+			projectData := postRequest("http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx/ViewPB", "{batchid: \"undefined\" }", os.Args[2], referrer)
+			projectDetails = append(projectDetails, projectData)
+		}
+		//writeCSV(stationList, problemBank)
 	}
 	if os.Args[1] == "-u" {
 		//Update pref list on website
 		updateJSON := getUpdateJSON()
 		//fmt.Println(string(updateJSON))
-		postRequest("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/saveStudentStationPref", string(updateJSON), os.Args[2])
+		postRequest("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/saveStudentStationPref", string(updateJSON), os.Args[2], "http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx")
 	}
 	if os.Args[1] != "-u" && os.Args[1] != "-g" {
 		fmt.Println("Wrong Argument: " + os.Args[1])
