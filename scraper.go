@@ -230,7 +230,7 @@ func getUpdateJSON() []byte {
 		jsondata += "'PreferenceNo':'" + strconv.FormatInt(i, 10) + "','StationId':'" + record[0] + "',"
 		i += 1
 		var accommodation string
-		if string(record[7][0]) == "Y" || string(record[7][0]) == "y" {
+		if string(record[9][0]) == "Y" || string(record[9][0]) == "y" {
 			accommodation = "true"
 		} else {
 			accommodation = "false"
