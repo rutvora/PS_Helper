@@ -97,12 +97,13 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 	csvData[4] = "Preferred Branches"
 	csvData[5] = "Stipend (UG)"
 	csvData[6] = "Stipend (PG)"
-	csvData[7] = "(Raw) Facilities"
-	csvData[8] = "Project IDs (check Sheet 2)"
+	csvData[7] = "Facilities (Raw)"
+	csvData[8] = "Projects"
 	csvData[9] = "Have Accommodation?"
 	err = csvWriter.Write(csvData)
 	checkErrors(err)
-	for _, station := range stationList {
+	var length = (int64)(len(stationList))
+	for i, station := range stationList {
 		problemBankCounterpart := findInMapArray(problemBank, "StationId", station["StationId"])
 		projectAndFacilitiesCounterpart := getStationDetails(fmt.Sprintf("%v", problemBankCounterpart["StationId"]), fmt.Sprintf("%v", problemBankCounterpart["CompanyId"]))
 		if problemBankCounterpart != nil {
@@ -113,28 +114,35 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 			csvData[4] = fmt.Sprintf("%v", problemBankCounterpart["Tags"])
 			csvData[5] = fmt.Sprintf("%v", problemBankCounterpart["stipend"])
 			csvData[6] = fmt.Sprintf("%v", problemBankCounterpart["stipendforpg"])
-
-			facilities := projectAndFacilitiesCounterpart["Facilities"]
-			facilitiesMap := facilities.([]map[string]interface{})
-			if len(facilitiesMap) > 0 {
-				csvData[7] = mapToString(facilitiesMap[0])
-			} else {
-				csvData[7] = ""
-			}
-
-			projects := projectAndFacilitiesCounterpart["Projects"]
-			projectsMaps := projects.([]map[string]interface{})
-			if len(projectsMaps) > 0 {
-				for i, projectMap := range projectsMaps {
-					csvData[8] += fmt.Sprintln("Project " + strconv.FormatInt(int64(i), 10))
-					csvData[8] += fmt.Sprintln("Title: " + fmt.Sprintf("%v", projectMap["projectTitle"]))
-					csvData[8] += fmt.Sprintln("Description" + fmt.Sprintf("%v", projectMap["PBDescription"]))
-					csvData[8] += fmt.Sprintln("Students Required" + fmt.Sprintf("%v", projectMap["TotalReqdStudents1"]))
-					csvData[8] += fmt.Sprintln("Min CGPA" + fmt.Sprintf("%v", projectMap["GeneralMinCGPA"]))
-					csvData[8] += fmt.Sprintln("Max CGPA" + fmt.Sprintf("%v", projectMap["GeneralMaxCGPA"]))
-					csvData[8] += "\n"
+			if len(projectAndFacilitiesCounterpart) > 0 {
+				facilities := projectAndFacilitiesCounterpart["Facilities"]
+				facilitiesMap := facilities.([]map[string]interface{})
+				if len(facilitiesMap) > 0 {
+					csvData[7] = mapToString(facilitiesMap[0])
+				} else {
+					csvData[7] = "Unavailable"
 				}
+
+				projects := projectAndFacilitiesCounterpart["Projects"]
+				projectsMaps := projects.([]map[string]interface{})
+				if len(projectsMaps) > 0 {
+					csvData[8] = ""
+					for i, projectMap := range projectsMaps {
+						csvData[8] += fmt.Sprintln("Project: " + strconv.FormatInt(int64(i), 10))
+						csvData[8] += fmt.Sprintln("Title: " + fmt.Sprintf("%v", projectMap["projectTitle"]))
+						csvData[8] += fmt.Sprintln("Description: " + fmt.Sprintf("%v", projectMap["PBDescription"]))
+						csvData[8] += fmt.Sprintln("Skills: " + fmt.Sprintf("%v", projectMap["SKills"]))
+						csvData[8] += fmt.Sprintln("Students Required: " + fmt.Sprintf("%v", projectMap["TotalReqdStudents1"]))
+						csvData[8] += fmt.Sprintln("Min CGPA: " + fmt.Sprintf("%v", projectMap["GeneralMinCGPA"]))
+						csvData[8] += fmt.Sprintln("Max CGPA: " + fmt.Sprintf("%v", projectMap["GeneralMaxCGPA"]))
+						csvData[8] += "\n"
+					}
+				}
+			} else {
+				csvData[7] = "Unavailable"
+				csvData[8] = "Unavailable"
 			}
+
 			csvData[9] = "No"
 		} else {
 
@@ -155,10 +163,13 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 			csvData[4] = "Unavailable"
 			csvData[5] = "Unavailable"
 			csvData[6] = "Unavailable"
-			csvData[7] = "No"
+			csvData[7] = "Unavailable"
+			csvData[8] = "Unavailable"
+			csvData[9] = "No"
 		}
 		err = csvWriter.Write(csvData)
 		checkErrors(err)
+		fmt.Println("Written " + strconv.FormatInt(int64(i + 1), 10) + " out of " + strconv.FormatInt(length, 10))
 	}
 	csvWriter.Flush()
 	err = csvFile.Close()
@@ -182,9 +193,12 @@ func postRequest(url string, data string, cookies string, referrer string) []map
 	checkErrors(err)
 	setHeaders(req, int64(len(data)), cookies, referrer)
 	client := &http.Client{}
-	checkErrors(err)
 	resp, err := client.Do(req)
-	checkErrors(err)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	//checkErrors(err)
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		log.Fatalln(url + " " + strconv.FormatInt(int64(resp.StatusCode), 10))
