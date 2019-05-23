@@ -74,7 +74,7 @@ func findInMapArray(mapArray []map[string]interface{}, key string, value interfa
 	return nil
 }
 
-func writeCSV(stationList, problemBank []map[string]interface{}) {
+func writeCSV(stationList, preferenceList, problemBank []map[string]interface{}) {
 	//Open file for csv
 	csvFile, err := os.Create("StationDetails.csv")
 	checkErrors(err)
@@ -92,7 +92,8 @@ func writeCSV(stationList, problemBank []map[string]interface{}) {
 	csvData[7] = "Have Accommodation?"
 	err = csvWriter.Write(csvData)
 	checkErrors(err)
-	for _, object := range stationList {
+	for _, psStation := range preferenceList {
+		object := findInMapArray(stationList, "StationId", psStation["StationId"])
 		problemBankCounterpart := findInMapArray(problemBank, "StationId", object["StationId"])
 		if problemBankCounterpart != nil {
 			csvData[0] = fmt.Sprintf("%v", object["StationId"])
@@ -241,7 +242,8 @@ func main() {
 		//Create CSV
 		stationList := postRequest("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/getinfoStation", "{CompanyId: \"0\" }", os.Args[2])
 		problemBank := postRequest("http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx/getPBdetail", "{batchid: \"undefined\" }", os.Args[2])
-		writeCSV(stationList, problemBank)
+		preferenceList := postRequest("http://psd.bits-pilani.ac.in/Student/StudentStationPreference.aspx/chkStationpref", "{contactid: \"0\"}", os.Args[2])
+		writeCSV(stationList, preferenceList, problemBank)
 	}
 	if os.Args[1] == "-u" {
 		//Update pref list on website
