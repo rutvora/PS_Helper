@@ -1,4 +1,7 @@
 # PS Helper  
+_Note 1:_ There is a separate branch to fetch project details. Please check it out
+_Note 2:_ This script seems to be working for both PS-I and PS-II. If you face any trouble, ping me on facebook
+
 **_Instructions:_**
 1. Open Google Chrome
 2. Press F12 to show debugging mode
