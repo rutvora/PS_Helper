@@ -1,4 +1,11 @@
 # PS Helper  
+
+
+_Note 1:_ This script needs modification for every PS. Modification is detailed below:  
+In line 297 of the script, BatchIdFor has to be changed to current batch. For PS-I, batch 10 is PS-I in 2020.  
+In line 297 of the script, PSTypeFor has to be changed to PS-I or PS-II based on the requirement.  
+That's all that is required for it to work well  
+
 **_Instructions:_**
 1. Open Google Chrome
 2. Press F12 to show debugging mode
@@ -19,4 +26,4 @@ Create csv file
 `./scraper -g "cookie"` (with quotes)  
 Update List (from the same csv file)  
 `./scraper -u "cookie"` (with quotes)
- 
+
