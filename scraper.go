@@ -35,7 +35,7 @@ func checkErrors(err error) {
 
 func setHeaders(req *http.Request, length int64, cookies string, referrer string) {
 	req.Header.Set("Accept", "application/json, text/javascript, */*; q=0.01")
-	req.Header.Set("Accept-Encoding", "gzip, deflate")
+	req.Header.Set("Accept-Encoding", "deflate")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9,gu;q=0.8,hi;q=0.7")
 	//req.Header.Set("Cache-Control", "max-age=0")
 	req.Header.Set("Connection", "keep-alive")
@@ -201,7 +201,7 @@ func postRequest(url string, data string, cookies string, referrer string) []map
 	//checkErrors(err)
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		log.Fatalln(url + " " + strconv.FormatInt(int64(resp.StatusCode), 10))
+		log.Println(url + " " + strconv.FormatInt(int64(resp.StatusCode), 10))
 	} else {
 		fmt.Println(url + " " + strconv.FormatInt(int64(resp.StatusCode), 10))
 	}
@@ -294,7 +294,7 @@ func getUpdateJSON() []byte {
 func getStationDetails(stationId, companyId string) map[string]interface{} {
 
 	projectTemp := make(map[string]interface{}, 2)
-	referrer := "http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx?CompanyId=" + companyId + "&StationId=" + stationId + "&BatchIdFor=9&PSTypeFor=2"
+	referrer := "http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx?CompanyId=" + companyId + "&StationId=" + stationId + "&BatchIdFor=10&PSTypeFor=2"
 	getRequest(referrer, os.Args[2]) //set state variable on the shitty server, else it will return the initial or the last company you visited
 	projectDetails := postRequest("http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx/ViewPB", "{batchid: \"undefined\" }", os.Args[2], referrer)
 	facilitiesDetails := postRequest("http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx/StationFacilitiesInfo", "{StationId: \"0\"}", os.Args[2], referrer)
