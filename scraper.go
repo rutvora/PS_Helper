@@ -89,7 +89,7 @@ func writeCSV(stationList, preferenceList, problemBank []map[string]interface{})
 	csvData[4] = "Preferred Branches"
 	csvData[5] = "Stipend (UG)"
 	csvData[6] = "Stipend (PG)"
-	csvData[7] = "Have Accommodation?"
+	csvData[7] = "Have Accommodation?(Y or N)"
 	err = csvWriter.Write(csvData)
 	checkErrors(err)
 	for _, psStation := range preferenceList {
@@ -103,7 +103,12 @@ func writeCSV(stationList, preferenceList, problemBank []map[string]interface{})
 			csvData[4] = fmt.Sprintf("%v", problemBankCounterpart["Tags"])
 			csvData[5] = fmt.Sprintf("%v", problemBankCounterpart["stipend"])
 			csvData[6] = fmt.Sprintf("%v", problemBankCounterpart["stipendforpg"])
-			csvData[7] = "No"
+			if psStation["Accommodation"]=="false" {
+				csvData[7] = "N"
+			} else {
+				csvData[7] = "Y"
+			}
+			
 		} else {
 
 			temp := strings.Split(fmt.Sprintf("%v", object["Companyname"]), "-")
@@ -123,7 +128,11 @@ func writeCSV(stationList, preferenceList, problemBank []map[string]interface{})
 			csvData[4] = "Unavailable"
 			csvData[5] = "Unavailable"
 			csvData[6] = "Unavailable"
-			csvData[7] = "No"
+			if psStation["Accommodation"]=="false" {
+				csvData[7] = "N"
+			} else {
+				csvData[7] = "Y"
+			}
 		}
 		fmt.Println(csvData)
 		err = csvWriter.Write(csvData)
