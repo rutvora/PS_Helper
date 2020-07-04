@@ -35,7 +35,7 @@ func checkErrors(err error) {
 
 func setHeaders(req *http.Request, length int64, cookies string) {
 	req.Header.Set("Accept", "application/json, text/javascript, */*; q=0.01")
-	req.Header.Set("Accept-Encoding", "gzip, deflate")
+	req.Header.Set("Accept-Encoding", "deflate")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9,gu;q=0.8,hi;q=0.7")
 	//req.Header.Set("Cache-Control", "max-age=0")
 	req.Header.Set("Connection", "keep-alive")
