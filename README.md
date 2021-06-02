@@ -1,6 +1,7 @@
 # PS Helper  
 _Note 1:_ There is a separate branch to fetch project details. Please check it out.  
-_Note 2:_ This script seems to be working for both PS-I and PS-II. If you face any trouble, ping me on facebook
+_Note 2:_ This script seems to be working for both PS-I and PS-II. If you face any trouble, ping me on facebook.  
+_Note 3:_ You can find the binaries in the 'release' section here on github (on your right side, if you are on Desktop).  
 
 **_Video Tutorial Link:_** https://youtu.be/I7PGqZqXOzA  
 
@@ -16,12 +17,10 @@ _Note 2:_ This script seems to be working for both PS-I and PS-II. If you face a
 9. See Commands below
 
 **_Commands:_**  
-_Note:_ paste whatever you copied from chrome where I've written cookie  
-_Windows Users: _ Use scraper.exe instead of ./scraper  
-_Mac Users: _ Use ./scraper_mac instead of ./scraper  
+_Note:_ paste whatever you copied from chrome where I've written cookie and make sure you are using the correct binary  
 
 Create csv file  
-`./scraper -g "cookie"` (with quotes)  
+`./<binary> -g "cookie"` (with quotes, don't forget to replace <binary> with the binary that you downloaded)  
 Update List (from the same csv file)  
-`./scraper -u "cookie"` (with quotes)
+`./<binary> -u "cookie"` (with quotes ,don't forget to replace <binary> with the binary that you downloaded)
  
