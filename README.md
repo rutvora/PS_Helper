@@ -5,6 +5,11 @@ _Note 1:_ This script needs modification for every PS. Modification is detailed 
 In line 217 of the script, BatchIdFor has to be changed to current batch. For PS-I, batch 10 is PS-I in 2020.  
 In line 217 of the script, PSTypeFor has to be changed to PS-I or PS-II based on the requirement.  
 That's all that is required for it to work well  
+_Note 2:_ You can find the binaries in the 'release' section here on github (on your right side, if you are on Desktop).  
+_Note 3:_ I will *NOT* ensure these stay updated every PS cycle. It is suggested you compile this on your own:  
+For compiling, you can use either of these 2 ways:  
+1. `go build scraper.go` (if you have a go environment)  
+2. `docker run --rm -it -v $(pwd):/usr/src/myapp -w /usr/src/myapp -e GOOS=<YOUR-OS> -e GOARCH=<YOUR-ARCH> golang go build -v scraper.go` (replace YOUR-OS and YOUR-ARCH. Make sure you have docker on your system).  
 
 **_Instructions:_**
 1. (To be run only the first time you download the script) chmod +x ./scraper *
@@ -22,8 +27,6 @@ That's all that is required for it to work well
 
 **_Commands:_**  
 _Note:_ paste whatever you copied from chrome where I've written cookie  
-_Windows Users: _ Use scraper.exe instead of ./scraper  
-_Mac Users: _ Use ./scraper_mac instead of ./scraper  
 
 Create csv file  
-`./scraper "cookie"` (with quotes)  
+`./<binary> "cookie"` (with quotes, don't forget to replace <binary> with the binary that you downloaded)  
