@@ -5,7 +5,7 @@ _Note 1:_ This script needs modification for every PS. Modification is detailed 
 In line 217 of the script, BatchIdFor has to be changed to current batch. For PS-I, batch 10 is PS-I in 2020.  
 In line 217 of the script, PSTypeFor has to be changed to PS-I or PS-II based on the requirement.  
 That's all that is required for it to work well  
-_Note 2:_ You can find the binaries in the 'release' section here on github (on your right side, if you are on Desktop).  
+_Note 2:_ You can find the binaries in the [releases](https://github.com/rutvora/PS_Helper/releases). Make sure you are downloading binaries of the ProjectDetails branch.  
 _Note 3:_ I will *NOT* ensure these stay updated every PS cycle. It is suggested you compile this on your own:  
 For compiling, you can use either of these 2 ways:  
 1. `go build scraper.go` (if you have a go environment)  
