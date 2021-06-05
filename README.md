@@ -1,7 +1,7 @@
 # PS Helper  
 _Note 1:_ There is a separate branch to fetch project details. Please check it out.  
 _Note 2:_ This script seems to be working for both PS-I and PS-II. If you face any trouble, ping me on facebook.  
-_Note 3:_ You can find the binaries in the [releases](https://github.com/rutvora/PS_Helper/releases). Make sure you are downloading binaries of the master branch.  
+_Note 3:_ You can find the binaries in the [releases](https://github.com/rutvora/PS_Helper/releases/tag/master_03062021). Make sure you are downloading binaries of the master branch.  
 
 **_Video Tutorial Link:_** https://youtu.be/I7PGqZqXOzA  
 
