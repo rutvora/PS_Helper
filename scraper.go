@@ -14,7 +14,8 @@ import (
 )
 
 var csvDataMap sync.Map
-var waitGroup sync.WaitGroup
+
+//var waitGroup sync.WaitGroup
 
 func checkErrors(err error) {
 	if err != nil {
@@ -85,15 +86,15 @@ func makeDetailsSheet(problemBank []map[string]interface{}) {
 	var length = (int64)(len(problemBank))
 	notifyWriteKeyToMap := make(chan int64)
 	go writeToCSV(notifyWriteKeyToMap, csvFile, csvWriter, length)
-	waitGroup.Add(1)
+	//waitGroup.Add(1)
 	for i, station := range problemBank {
-		go getProjectDetails(station, notifyWriteKeyToMap, i)
-		waitGroup.Add(1)
+		getProjectDetails(station, notifyWriteKeyToMap, i)
+		//waitGroup.Add(1)
 	}
 }
 
 func writeToCSV(notifyWriteKeyToMap chan int64, csvFile *os.File, csvWriter *csv.Writer, length int64) {
-	defer waitGroup.Done()
+	//defer waitGroup.Done()
 	for i := int64(0); i < length; i++ {
 		csvData, ok := csvDataMap.Load(<-notifyWriteKeyToMap)
 		if !ok {
@@ -110,7 +111,7 @@ func writeToCSV(notifyWriteKeyToMap chan int64, csvFile *os.File, csvWriter *csv
 }
 
 func getProjectDetails(station map[string]interface{}, notifyWriteKeyToMap chan int64, count int) {
-	defer waitGroup.Done()
+	//defer waitGroup.Done()
 	csvData := make([]string, 10)
 	projectAndFacilitiesCounterpart := getStationDetails(fmt.Sprintf("%v", station["StationId"]), fmt.Sprintf("%v", station["CompanyId"]))
 	if station != nil {
@@ -214,7 +215,7 @@ func postRequest(url string, data string, cookies string, referrer string) []map
 func getStationDetails(stationId, companyId string) map[string]interface{} {
 
 	projectTemp := make(map[string]interface{}, 2)
-	referrer := "http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx?CompanyId=" + companyId + "&StationId=" + stationId + "&BatchIdFor=10&PSTypeFor=2"
+	referrer := "http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx?CompanyId=" + companyId + "&StationId=" + stationId + "&BatchIdFor=11&PSTypeFor=2"
 	getRequest(referrer, os.Args[1]) //set state variable on the shitty server, else it will return the initial or the last company you visited
 	projectDetails := postRequest("http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx/ViewPB", "{batchid: \"undefined\" }", os.Args[1], referrer)
 	facilitiesDetails := postRequest("http://psd.bits-pilani.ac.in/Student/StationproblemBankDetails.aspx/StationFacilitiesInfo", "{StationId: \"0\"}", os.Args[1], referrer)
@@ -228,5 +229,5 @@ func main() {
 	//Create CSV
 	problemBank := postRequest("http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx/getPBdetail", "{batchid: \"undefined\" }", os.Args[1], "http://psd.bits-pilani.ac.in/Student/ViewActiveStationProblemBankData.aspx")
 	makeDetailsSheet(problemBank)
-	waitGroup.Wait()
+	//waitGroup.Wait()
 }
